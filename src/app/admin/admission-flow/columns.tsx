@@ -1,49 +1,32 @@
-"use client"
+"use client";
 
 import { Button } from "@/components/ui/button";
+import studentsApi from "@/lib/api/students";
+import { formatTimeAgo } from "@/lib/functions/date.functions";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-//   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@radix-ui/react-dropdown-menu";
 import { ColumnDef } from "@tanstack/react-table";
+import { useState } from "react";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
-// This type is used to define the shape of our data.
 export type Student = {
-  id: string;
+  id: number;
   sex: string;
   firstName: string;
   lastName: string;
   gradeLevel: string;
   previousSchool: string;
   phase: "Approved" | "Pending" | "Rescheduled" | "Rejected";
-  lastUpdate: string; // In real-world applications, this would be a Date object
+  lastUpdate: Date;
   notes: string;
 };
 
-// Utility function to format time ago (relative time)
-// const formatTimeAgo = (timestamp: string) => {
-//   const now = new Date();
-//   const lastUpdate = new Date(timestamp);
-//   const diffInSeconds = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
-
-//   if (diffInSeconds < 60) {
-//     return `${diffInSeconds} seconds ago`;
-//   } else if (diffInSeconds < 3600) {
-//     const minutes = Math.floor(diffInSeconds / 60);
-//     return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-//   } else if (diffInSeconds < 86400) {
-//     const hours = Math.floor(diffInSeconds / 3600);
-//     return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-//   } else {
-//     const days = Math.floor(diffInSeconds / 86400);
-//     return `${days} day${days > 1 ? "s" : ""} ago`;
-//   }
-// };
-
-export const columns: ColumnDef<Student>[] = [
+export const columns = (fetchData: () => void): ColumnDef<Student>[] => [
   {
     accessorKey: "id",
     header: "ID",
@@ -67,6 +50,41 @@ export const columns: ColumnDef<Student>[] = [
   {
     accessorKey: "previousSchool",
     header: "Previous School",
+    cell: ({ row }) => {
+      const student = row.original;
+      const [value, setValue] = useState(student.previousSchool);
+      const [loading, setLoading] = useState(false);
+
+      const handleBlur = async () => {
+        if (value !== student.previousSchool) {
+          try {
+            setLoading(true);
+            const data = new FormData();
+            data.append("id", student.id.toString());
+            data.append("previousSchool", value);
+            await studentsApi.updateStudent(data);
+            toast.success("Previous school updated");
+            fetchData();
+          } catch (err: any) {
+            toast.error(err.message || "Failed to update previous school");
+            setValue(student.previousSchool);
+          } finally {
+            setLoading(false);
+          }
+        }
+      };
+
+      return (
+        <input
+          type="text"
+          className="border px-2 py-1 w-full rounded"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={handleBlur}
+          disabled={loading}
+        />
+      );
+    },
   },
   {
     accessorKey: "phase",
@@ -74,59 +92,59 @@ export const columns: ColumnDef<Student>[] = [
     cell: ({ row }) => {
       const student = row.original;
 
+      const handlePhaseChange = async (newPhase: Student["phase"]) => {
+        try {
+          var data: any = new FormData();
+          data.append("id", student.id);
+          data.append("phase", newPhase);
+          await studentsApi.updateStudent(data);
+          toast.success(`Phase updated to ${newPhase}`);
+          fetchData();
+        } catch (err: any) {
+          toast.error(err.message || "Failed to update phase");
+        }
+      };
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full">
-              {student.phase} {/* Show current phase value */}
+              {student.phase}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-gray-100 rounded-md p-4">
-            {/* <DropdownMenuLabel>Change Phase</DropdownMenuLabel> */}
-            <DropdownMenuItem
-              onClick={() => {
-                console.log(`Changed ${student.firstName} ${student.lastName} phase to Approved`);
-                // Logic to update phase
-              }}
-            >
-              Approved
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                console.log(`Changed ${student.firstName} ${student.lastName} phase to Pending`);
-                // Logic to update phase
-              }}
-            >
-              Pending
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                console.log(`Changed ${student.firstName} ${student.lastName} phase to Rescheduled`);
-                // Logic to update phase
-              }}
-            >
-              Rescheduled
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                console.log(`Changed ${student.firstName} ${student.lastName} phase to Rejected`);
-                // Logic to update phase
-              }}
-            >
-              Rejected
-            </DropdownMenuItem>
+          <DropdownMenuContent
+            align="end"
+            className="bg-gray-100 rounded-md p-4"
+          >
+            {["Approved", "Pending", "Rescheduled", "Rejected"].map((phase) => (
+              <DropdownMenuItem
+                key={phase}
+                onClick={() => handlePhaseChange(phase as Student["phase"])}
+                className="dropdown-item"
+              >
+                {phase}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
+  // {
+  //   accessorKey: "updatedAt",
+  //   header: "Last Update",
+  //   cell: ({ getValue }) => {
+  //     const lastUpdate = getValue() as Date;
+  //     return formatTimeAgo(lastUpdate);
+  //   },
+  // },
   {
-    accessorKey: "lastUpdate",
+    accessorKey: "updatedAt",
     header: "Last Update",
-    // cell: ({ getValue }) => {
-    //   const lastUpdate = getValue() as string;
-    //   return formatTimeAgo(lastUpdate);
-    // },
+    cell: ({ getValue }) => {
+      const date = new Date(getValue() as string);
+      return formatDistanceToNow(date);
+    },
   },
   {
     accessorKey: "notes",

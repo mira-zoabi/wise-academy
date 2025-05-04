@@ -44,7 +44,6 @@ export default function AdmissionFlowPage() {
   };
 
   useEffect(() => {
-    // Using regex to check if input contains only numbers
     const isNumeric = /^\d+$/.test(search);
 
     if (
@@ -76,7 +75,7 @@ export default function AdmissionFlowPage() {
         />
       </div>
       {loading && <p>Loading students...</p>}
-      {!loading && <DataTable columns={columns} data={data} />}
+      {!loading && <DataTable columns={columns(fetchData)} data={data} />}
     </div>
   );
 }

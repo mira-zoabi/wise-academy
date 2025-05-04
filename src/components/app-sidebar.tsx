@@ -57,7 +57,7 @@ export function AppSidebar() {
       <SidebarContent>
         {/* Logo Section */}
         <div className="py-6 px-4 flex justify-center border-b">
-          <div className="text-xl font-bold">🎓 Admin Panel</div>
+          <div className="text-xl font-bold">Wise Academy</div>
         </div>
 
         {/* Sidebar Menu Group */}
@@ -65,7 +65,6 @@ export function AppSidebar() {
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {/* Map over the sidebarItems to create each menu item */}
               {sidebarItems.map(({ label, href, icon: Icon }) => {
                 const isActive = pathname === href;
                 return (
